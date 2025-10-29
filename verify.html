@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Verify Voter — DecenVote</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+   <style>
+        /* small helper so sections animate in/out smoothly */
+        .hidden-section {
+            display: none;
+        }
+
+        @keyframes flagwave {
+            0%{ background-position: 0% 50%;}
+            50%{background-position: 100% 50%;}
+            100% {background-position: 0% 50%;}
+        }
+
+        .animate-flag{
+            background-size: 300% 300%;
+            animation: flagwave 8s ease infinite;
+        }
+
+    </style>
+</head>
+<body class="text-gray-800 font-sans bg-gradient-to-br from-[#FF8C00] via-[#FFFFFF] via-[#1A237E] to-[#0B6623] animate-flag">
+  <header class="bg-blue-700 text-white p-4 sticky top-0 z-20">
+        <div class="max-w-4xl mx-auto flex items-center justify-between">
+            <h1 class="text-xl font-semibold">E-Vote</h1>
+            <nav class="space-x-2 text-sm">
+                <a href="index.html" class="px-3 py-1 rounded hover:bg-blue-500">Home</a>
+                <a href="register.html" class="px-3 py-1 rounded hover:bg-blue-500">Register</a>
+                <a href="vote.html" class="px-3 py-1 rounded hover:bg-blue-500">Vote</a>
+                <a href="results.html" class="px-3 py-1 rounded hover:bg-blue-500">Live Results</a>
+            </nav>
+        </div>
+    </header>
+
+  <main class="max-w-lg mx-auto mt-10 backdrop-blur-xl bg-white/20 shadow-2xl rounded-2xl p-6 text-center border border-white/30 transform hover:-translate-y-2 transition duration-500 ">
+    <h2 class="text-2xl font-bold mb-2 text-center">Verify Your Identity</h2>
+    <p class="text-sm text-gray-600 mb-6 text-center">Enter your Voter ID or Aadhar number to continue to voting.</p>
+
+    <form id="verifyForm" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1">Voter ID</label>
+        <input type="text" id="voterId" class="w-full border p-2 rounded" placeholder="Enter your Voter ID" required />
+      </div>
+      <div class="text-center text-gray-500">or</div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Aadhar Number</label>
+        <input type="text" id="aadhar" class="w-full border p-2 rounded" placeholder="Enter your Aadhar Number" />
+      </div>
+      <button type="submit" class="w-full py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700">Verify</button>
+    </form>
+
+    <p id="status" class="mt-4 text-center text-sm"></p>
+  </main>
+
+  <script>
+    const LS_KEYS = {
+      VOTERS: 'decenvote_voters'
+    };
+
+    function getStore(key){ return JSON.parse(localStorage.getItem(key) || '[]'); }
+
+    const form = document.getElementById('verifyForm');
+    const status = document.getElementById('status');
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const voterId = document.getElementById('voterId').value.trim();
+      const aadhar = document.getElementById('aadhar').value.trim();
+
+      const voters = getStore(LS_KEYS.VOTERS);
+      const voter = voters.find(v => v.id === voterId || v.aadhar === aadhar);
+
+      if(voter){
+        localStorage.setItem('decenvote_verifiedVoter', JSON.stringify(voter));
+        status.textContent = '✅ Verification successful! Redirecting to election page...';
+        status.className = 'mt-4 text-center text-green-600';
+        setTimeout(() => window.location.href = 'vote.html', 1500);
+      } else {
+        status.textContent = '❌ Voter not found. Please register first.';
+        status.className = 'mt-4 text-center text-red-600';
+      }
+    });
+  </script>
+</body>
+</html>

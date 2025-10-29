@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Login — DecenVote</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+  <div class="bg-white shadow-xl rounded-2xl p-8 w-full max-w-sm">
+    <h1 class="text-2xl font-bold text-center text-indigo-600 mb-6">Admin Login</h1>
+    <form id="loginForm" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1 text-gray-600">Admin ID</label>
+        <input type="text" id="adminId" placeholder="Enter Admin ID" required class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1 text-gray-600">Password</label>
+        <input type="password" id="adminPass" placeholder="Enter Password" required class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+      </div>
+      <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 rounded-lg hover:bg-indigo-700 transition">Login</button>
+    </form>
+    <p id="errorMsg" class="text-red-500 text-sm text-center mt-3 hidden">Invalid credentials</p>
+  </div>
+
+  <script>
+    // Default credentials (can be changed)
+    const DEFAULT_ADMIN = {
+      id: 'admin@decenvote',
+      password: '12345'
+    };
+
+    const form = document.getElementById('loginForm');
+    const errorMsg = document.getElementById('errorMsg');
+
+    // If already logged in, redirect
+    if (localStorage.getItem('decenvote_adminLoggedIn') === 'true') {
+      window.location.href = 'dashboard.html';
+    }
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const adminId = document.getElementById('adminId').value.trim();
+      const adminPass = document.getElementById('adminPass').value.trim();
+
+      if (adminId === DEFAULT_ADMIN.id && adminPass === DEFAULT_ADMIN.password) {
+        localStorage.setItem('decenvote_adminLoggedIn', 'true');
+        alert('✅ Login successful!');
+        window.location.href = 'dashboard.html';
+      } else {
+        errorMsg.classList.remove('hidden');
+        errorMsg.textContent = '❌ Invalid credentials. Try again.';
+      }
+    });
+  </script>
+</body>
+</html>

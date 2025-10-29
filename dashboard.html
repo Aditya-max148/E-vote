@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Dashboard — DecenVote</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+
+  <!-- Header -->
+  <header class="bg-white shadow p-4 sticky top-0 z-20">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <h1 class="text-xl font-semibold">DecenVote Admin Dashboard</h1>
+      <nav class="space-x-2 text-sm">
+        <a href="dashboard.html" class="px-3 py-1 rounded hover:bg-gray-100">Dashboard</a>
+        <a href="create.html" class="px-3 py-1 rounded hover:bg-gray-100">Create Election</a>
+        <a href="voterlist.html" class="px-3 py-1 rounded hover:bg-gray-100">Voter list</a>
+        <a href="results.html" class="px-3 py-1 rounded hover:bg-gray-100">Setting</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto mt-10 p-6">
+    <h2 class="text-2xl font-bold mb-6 text-center">Admin Overview</h2>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="bg-white rounded-xl shadow p-4 text-center">
+        <h3 class="text-sm text-gray-500">Total Elections</h3>
+        <p id="totalElections" class="text-3xl font-bold text-indigo-600 mt-2">0</p>
+      </div>
+      <div class="bg-white rounded-xl shadow p-4 text-center">
+        <h3 class="text-sm text-gray-500">Registered Voters</h3>
+        <p id="totalVoters" class="text-3xl font-bold text-green-600 mt-2">0</p>
+      </div>
+      <div class="bg-white rounded-xl shadow p-4 text-center">
+        <h3 class="text-sm text-gray-500">Total Votes Cast</h3>
+        <p id="totalVotes" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="bg-white rounded-xl shadow p-6 mb-10">
+      <h3 class="text-lg font-semibold mb-4 text-gray-700">Votes Per Election</h3>
+      <canvas id="votesChart" height="100"></canvas>
+    </div>
+
+    <!-- Blockchain Ledger -->
+    <div class="bg-white rounded-xl shadow p-6">
+      <h3 class="text-lg font-semibold mb-4 text-gray-700">Blockchain Ledger</h3>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm border border-gray-200">
+          <thead class="bg-gray-100 border-b">
+            <tr>
+              <th class="py-2 px-4 text-left">#</th>
+              <th class="py-2 px-4 text-left">Election</th>
+              <th class="py-2 px-4 text-left">Voter ID</th>
+              <th class="py-2 px-4 text-left">Candidate</th>
+              <th class="py-2 px-4 text-left">Transaction Hash</th>
+              <th class="py-2 px-4 text-left">Timestamp</th>
+            </tr>
+          </thead>
+          <tbody id="ledgerTable" class="divide-y"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const KEYS = {
+      ELECTIONS: 'decenvote_elections',
+      VOTERS: 'decenvote_voters',
+      VOTES: 'decenvote_votes'
+    };
+
+    const getStore = key => JSON.parse(localStorage.getItem(key) || '[]');
+
+    const elections = getStore(KEYS.ELECTIONS);
+    const voters = getStore(KEYS.VOTERS);
+    const votes = getStore(KEYS.VOTES);
+
+    // Update stats
+    document.getElementById('totalElections').textContent = elections.length;
+    document.getElementById('totalVoters').textContent = voters.length;
+    document.getElementById('totalVotes').textContent = votes.length;
+
+    // Chart: Votes per election
+    const ctx = document.getElementById('votesChart');
+    const electionNames = elections.map(e => e.title);
+    const voteCounts = elections.map(e => votes.filter(v => v.electionId === e.id).length);
+
+    if (elections.length > 0) {
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: electionNames,
+          datasets: [{
+            label: 'Votes',
+            data: voteCounts,
+            backgroundColor: '#6366F1',
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    } else {
+      ctx.outerHTML = '<p class=\"text-gray-500 text-center\">No elections yet to visualize.</p>';
+    }
+
+    // Blockchain Ledger
+    const ledgerTable = document.getElementById('ledgerTable');
+    if (votes.length === 0) {
+      ledgerTable.innerHTML = '<tr><td colspan=\"6\" class=\"text-center text-gray-500 py-4\">No transactions yet.</td></tr>';
+    } else {
+      let i = 1;
+      votes.forEach(v => {
+        const election = elections.find(e => e.id === v.electionId);
+        const candidate = election?.candidates.find(c => c.id === v.candidateId);
+        const maskedVoter = v.voterId ? v.voterId.slice(0,4) + '****' : 'Anonymous';
+        const row = `
+          <tr>
+            <td class='py-2 px-4'>${i++}</td>
+            <td class='py-2 px-4'>${election?.title || 'N/A'}</td>
+            <td class='py-2 px-4 text-gray-500'>${maskedVoter}</td>
+            <td class='py-2 px-4'>${candidate?.name || 'N/A'}</td>
+            <td class='py-2 px-4 font-mono text-xs text-indigo-600'>${v.txHash}</td>
+            <td class='py-2 px-4 text-gray-500 text-xs'>${new Date(v.timestamp).toLocaleString()}</td>
+          </tr>`;
+        ledgerTable.insertAdjacentHTML('beforeend', row);
+      });
+    }
+  </script>
+</body>
+</html>

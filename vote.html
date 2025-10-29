@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vote — DecenVote</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+        /* small helper so sections animate in/out smoothly */
+        .hidden-section {
+            display: none;
+        }
+
+        @keyframes flagwave {
+            0%{ background-position: 0% 50%;}
+            50%{background-position: 100% 50%;}
+            100% {background-position: 0% 50%;}
+        }
+
+        .animate-flag{
+            background-size: 300% 300%;
+            animation: flagwave 8s ease infinite;
+        }
+
+    </style>
+</head>
+<body class="bg-gradient-to-br from-[#FF8C00] via-[#FFFFFF] via-[#1A237E] to-[#0B6623] animate-flag text-gray-800 font-sans">
+  <header class="bg-blue-700 text-white p-4 sticky top-0 z-20">
+        <div class="max-w-4xl mx-auto flex items-center justify-between">
+            <h1 class="text-xl font-semibold">E-Vote</h1>
+            <nav class="space-x-2 text-sm">
+                <a href="index.html" class="px-3 py-1 rounded hover:bg-blue-500">Home</a>
+                <a href="verify.html" class="px-3 py-1 rounded hover:bg-blue-500">Verify</a>
+                <a href="register.html" class="px-3 py-1 rounded hover:bg-blue-500">Register</a>
+                <a href="results.html" class="px-3 py-1 rounded hover:bg-blue-500">Live Results</a>
+            </nav>
+        </div>
+    </header>
+
+  <main class="max-w-lg mx-auto mt-10 backdrop-blur-xl bg-white/20 shadow-2xl rounded-2xl p-6 text-center border border-white/30 transform hover:-translate-y-2 transition duration-500 ">
+    <h2 class="text-2xl font-bold mb-2 text-center">Active Elections</h2>
+    <p class="text-sm text-gray-600 mb-6 text-center">Select your candidate and vote once. Voting is only available during the election period.</p>
+
+    <div id="electionList" class="space-y-6"></div>
+    <p id="status" class="mt-4 text-center text-sm"></p>
+  </main>
+
+  <script>
+    const LS_KEYS = { ELECTIONS: 'decenvote_elections', VOTES: 'decenvote_votes' };
+
+    function getStore(key){ return JSON.parse(localStorage.getItem(key) || '[]'); }
+    function setStore(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+    const voter = JSON.parse(localStorage.getItem('decenvote_verifiedVoter'));
+    const electionList = document.getElementById('electionList');
+    const status = document.getElementById('status');
+
+    if(!voter){
+      status.textContent = '⚠️ Please verify your identity first.';
+      status.className = 'text-center text-red-600';
+      setTimeout(()=> window.location.href = 'verify.html', 1500);
+    } else {
+      loadElections();
+    }
+
+    function loadElections(){
+      const elections = getStore(LS_KEYS.ELECTIONS);
+      const votes = getStore(LS_KEYS.VOTES);
+      const now = Date.now();
+
+      if(elections.length === 0){
+        electionList.innerHTML = '<p class="text-center text-gray-500">No elections available.</p>';
+        return;
+      }
+
+      electionList.innerHTML = '';
+      elections.forEach(election => {
+        if(now < election.startsAt || now > election.endsAt){
+          return;
+        }
+
+        const hasVoted = votes.some(v => v.electionId === election.id && v.voterId === voter.id);
+        const div = document.createElement('div');
+        div.className = 'border rounded-xl p-4 shadow-sm';
+
+        let candidatesHTML = '';
+        election.candidates.forEach(c => {
+          candidatesHTML += `
+            <div class='flex items-center justify-between border p-3 rounded mb-2'>
+              <div class='flex items-center gap-3'>
+                <img src="${c.photo}" class="w-12 h-12 rounded-full object-cover border"/>
+                <div>
+                  <div class="font-semibold">${c.name}</div>
+                  <div class="text-xs text-gray-500">${c.party}</div>
+                </div>
+              </div>
+              ${!hasVoted ? `<button data-eid='${election.id}' data-cid='${c.id}' class='vote-btn px-3 py-1 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700'>Vote</button>` : ''}
+            </div>`;
+        });
+
+        div.innerHTML = `
+          <h3 class='text-lg font-bold mb-2'>${election.title}</h3>
+          ${hasVoted ? `<p class='text-green-600 text-sm mb-2'>✅ You have already voted in this election.</p>` : ''}
+          <div>${candidatesHTML}</div>`;
+
+        electionList.appendChild(div);
+      });
+
+      document.querySelectorAll('.vote-btn').forEach(btn => {
+        btn.addEventListener('click', handleVote);
+      });
+    }
+
+    function handleVote(e){
+      const electionId = e.target.getAttribute('data-eid');
+      const candidateId = e.target.getAttribute('data-cid');
+
+      const votes = getStore(LS_KEYS.VOTES);
+      const alreadyVoted = votes.some(v => v.electionId === electionId && v.voterId === voter.id);
+      if(alreadyVoted){
+        alert('You have already voted in this election.');
+        return;
+      }
+
+      const vote = {
+        electionId,
+        voterId: voter.id,
+        candidateId,
+        timestamp: Date.now(),
+        txHash: crypto.randomUUID() // simulate blockchain transaction ID
+      };
+      votes.push(vote);
+      setStore(LS_KEYS.VOTES, votes);
+
+      alert('✅ Your vote has been recorded successfully!');
+      loadElections();
+    }
+  </script>
+</body>
+</html>

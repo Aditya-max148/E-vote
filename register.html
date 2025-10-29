@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Register Voter — DecenVote</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+   <style>
+        .hidden-section { display: none; }
+        @keyframes flagwave {
+            0%{ background-position: 0% 50%; }
+            50%{ background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .animate-flag {
+            background-size: 300% 300%;
+            animation: flagwave 8s ease infinite;
+        }
+    </style>
+</head>
+<body class="text-gray-800 font-sans bg-gradient-to-br from-[#FF8C00] via-[#FFFFFF] via-[#1A237E] to-[#0B6623] animate-flag">
+
+  <header class="bg-blue-700 text-white p-4 sticky top-0 z-20">
+    <div class="max-w-4xl mx-auto flex items-center justify-between">
+      <h1 class="text-xl font-semibold">E-Vote</h1>
+      <nav class="space-x-2 text-sm">
+        <a href="index.html" class="px-3 py-1 rounded hover:bg-blue-500">Home</a>
+        <a href="verify.html" class="px-3 py-1 rounded hover:bg-blue-500">Verify</a>
+        <a href="vote.html" class="px-3 py-1 rounded hover:bg-blue-500">Vote</a>
+        <a href="results.html" class="px-3 py-1 rounded hover:bg-blue-500">Live Results</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-lg mx-auto mt-10 backdrop-blur-xl bg-white/20 shadow-2xl rounded-2xl p-6 text-center border border-white/30 transform hover:-translate-y-2 transition duration-500">
+    <h2 class="text-2xl font-bold mb-2 text-center">Voter Registration</h2>
+    <p class="text-sm text-gray-600 mb-6 text-center">Enter your details to register for secure e-voting.</p>
+
+    <form id="registerForm" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1">Full Name</label>
+        <input type="text" id="name" class="w-full border p-2 rounded" placeholder="Enter full name" required />
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Voter ID</label>
+        <input type="text" id="voterId" class="w-full border p-2 rounded" placeholder="Create a unique Voter ID" required />
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Aadhar Number</label>
+        <input type="text" id="aadhar" class="w-full border p-2 rounded" placeholder="Enter your 12-digit Aadhar" required />
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Upload Photo</label>
+        <input type="file" id="photo" accept="image/*" class="w-full border p-2 rounded" required />
+      </div>
+
+      <!-- Location detection -->
+      <button type="button" id="locateBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">
+        📍 Check My Location
+      </button>
+
+      <!-- Manual circle entry if far from booth -->
+      <div id="circleSection" class="hidden-section">
+        <label class="block text-sm font-medium mb-1">Enter Your Voting Circle</label>
+        <input type="text" id="circle" class="w-full border p-2 rounded" placeholder="Enter your circle (e.g., Pune-West, Mumbai-East)" />
+      </div>
+
+      <button type="submit" id="registerBtn" class="w-full py-2 rounded bg-green-600 text-white hover:bg-green-700" disabled>
+        Register
+      </button>
+    </form>
+
+    <p id="status" class="mt-4 text-center text-sm"></p>
+  </main>
+
+  <script>
+    const LS_KEYS = { VOTERS: 'decenvote_voters' };
+
+    function getStore(key){ return JSON.parse(localStorage.getItem(key) || '[]'); }
+    function setStore(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+    // Dummy booth coordinates (replace with real)
+    const booths = [
+      { name: "Mumbai Booth", lat: 19.0760, lon: 72.8777 },
+      { name: "Pune Booth", lat: 18.5204, lon: 73.8567 },
+      { name: "Nashik Booth", lat: 19.9975, lon: 73.7898 }
+    ];
+
+    function getDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    const locateBtn = document.getElementById('locateBtn');
+    const status = document.getElementById('status');
+    const circleSection = document.getElementById('circleSection');
+    const registerBtn = document.getElementById('registerBtn');
+    let isEligible = false;
+
+    locateBtn.addEventListener('click', () => {
+      status.textContent = 'Detecting your location...';
+      navigator.geolocation.getCurrentPosition(pos => {
+        const { latitude, longitude } = pos.coords;
+        let nearest = { name: '', distance: Infinity };
+
+        booths.forEach(b => {
+          const dist = getDistance(latitude, longitude, b.lat, b.lon);
+          if (dist < nearest.distance) nearest = { name: b.name, distance: dist };
+        });
+
+        if (nearest.distance <= 100) {
+          status.innerHTML = `❌ You are only <b>${nearest.distance.toFixed(1)} km</b> away from ${nearest.name}.<br>You must vote at your nearest offline booth.`;
+          circleSection.classList.add('hidden-section');
+          registerBtn.disabled = true;
+          isEligible = false;
+        } else {
+          status.innerHTML = `✅ You are <b>${nearest.distance.toFixed(1)} km</b> away from the nearest booth.<br>You are eligible for online voting. Please enter your voting circle.`;
+          circleSection.classList.remove('hidden-section');
+          registerBtn.disabled = false;
+          isEligible = true;
+        }
+      }, () => {
+        status.textContent = '❌ Location access denied. Please allow location to continue.';
+      });
+    });
+
+    // Register voter
+    const form = document.getElementById('registerForm');
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if(!isEligible) {
+        status.textContent = '❌ You are not eligible for e-voting registration.';
+        status.className = 'mt-4 text-center text-red-600';
+        return;
+      }
+
+      const name = document.getElementById('name').value.trim();
+      const voterId = document.getElementById('voterId').value.trim();
+      const aadhar = document.getElementById('aadhar').value.trim();
+      const circle = document.getElementById('circle').value.trim();
+      const photoFile = document.getElementById('photo').files[0];
+
+      if(!photoFile){
+        status.textContent = 'Please upload a photo.';
+        status.className = 'mt-4 text-center text-red-600';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(evt){
+        const photoDataUrl = evt.target.result;
+        const voters = getStore(LS_KEYS.VOTERS);
+
+        if(voters.some(v => v.id === voterId || v.aadhar === aadhar)){
+          status.textContent = '❌ Voter with same ID or Aadhar already exists!';
+          status.className = 'mt-4 text-center text-red-600';
+          return;
+        }
+
+        voters.push({ id: voterId, name, aadhar, circle, photoDataUrl });
+        setStore(LS_KEYS.VOTERS, voters);
+
+        status.textContent = '✅ Registration successful! Redirecting to verify page...';
+        status.className = 'mt-4 text-center text-green-600';
+        form.reset();
+        setTimeout(() => window.location.href = 'verify.html', 1500);
+      };
+      reader.readAsDataURL(photoFile);
+    });
+  </script>
+</body>
+</html>

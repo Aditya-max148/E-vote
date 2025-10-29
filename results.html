@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Live Results — DecenVote</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+        /* small helper so sections animate in/out smoothly */
+        .hidden-section {
+            display: none;
+        }
+
+        @keyframes flagwave {
+            0%{ background-position: 0% 50%;}
+            50%{background-position: 100% 50%;}
+            100% {background-position: 0% 50%;}
+        }
+
+        .animate-flag{
+            background-size: 300% 300%;
+            animation: flagwave 8s ease infinite;
+        }
+
+    </style>
+</head>
+<body class="bg-gradient-to-br from-[#FF8C00] via-[#FFFFFF] via-[#1A237E] to-[#0B6623] animate-flag text-gray-800 font-sans">
+  <header class="bg-blue-700 text-white p-4 sticky top-0 z-20">
+        <div class="max-w-4xl mx-auto flex items-center justify-between">
+            <h1 class="text-xl font-semibold">E-Vote</h1>
+            <nav class="space-x-2 text-sm">
+                <a href="index.html" class="px-3 py-1 rounded hover:bg-blue-500">Home</a>
+                <a href="verify.html" class="px-3 py-1 rounded hover:bg-blue-500">Verify</a>
+                <a href="register.html" class="px-3 py-1 rounded hover:bg-blue-500">Register</a>
+                <a href="vote.html" class="px-3 py-1 rounded hover:bg-blue-500">Vote</a>
+                 
+            </nav>
+        </div>
+    </header>
+
+  <main class="max-w-lg mx-auto mt-10 backdrop-blur-xl bg-white/20 shadow-2xl rounded-2xl p-6 text-center border border-white/30 transform hover:-translate-y-2 transition duration-500 ">
+    <h2 class="text-2xl font-bold mb-2 text-center">Election Results</h2>
+    <p class="text-sm text-gray-600 mb-6 text-center">See who’s leading in each election.</p>
+
+    <div id="resultsList" class="space-y-6"></div>
+  </main>
+
+  <script>
+    const LS_KEYS = { ELECTIONS: 'decenvote_elections', VOTES: 'decenvote_votes' };
+    function getStore(key){ return JSON.parse(localStorage.getItem(key) || '[]'); }
+
+    const elections = getStore(LS_KEYS.ELECTIONS);
+    const votes = getStore(LS_KEYS.VOTES);
+    const resultsList = document.getElementById('resultsList');
+
+    if(elections.length === 0){
+      resultsList.innerHTML = '<p class="text-center text-gray-500">No elections available.</p>';
+    } else {
+      elections.forEach(election => {
+        const tally = {};
+        election.candidates.forEach(c => tally[c.id] = 0);
+        votes.filter(v => v.electionId === election.id).forEach(v => tally[v.candidateId]++);
+
+        const sorted = election.candidates.sort((a,b) => tally[b.id] - tally[a.id]);
+        const leader = sorted[0];
+        let totalVotes = Object.values(tally).reduce((a,b)=>a+b,0);
+
+        let html = `
+          <div class="border rounded-xl p-4 shadow-sm">
+            <h3 class="text-lg font-bold mb-3">${election.title}</h3>
+            ${sorted.map(c => `
+              <div class="flex items-center justify-between border p-3 rounded mb-2 ${c.id===leader.id && totalVotes>0?'bg-green-50 border-green-400':''}">
+                <div class="flex items-center gap-3">
+                  <img src="${c.photo}" class="w-12 h-12 rounded-full object-cover border"/>
+                  <div>
+                    <div class="font-semibold">${c.name}</div>
+                    <div class="text-xs text-gray-500">${c.party}</div>
+                  </div>
+                </div>
+                <div class="text-sm font-semibold">${tally[c.id]} votes</div>
+              </div>`).join('')}
+            <p class="text-xs text-gray-500 text-right mt-2">Total votes: ${totalVotes}</p>
+          </div>`;
+        resultsList.innerHTML += html;
+      });
+    }
+
+    // Optional live update every 5 seconds
+    setInterval(()=> location.reload(), 5000);
+  </script>
+</body>
+</html>

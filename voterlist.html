@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Voter List — DecenVote</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes flagwave {
+      0%{ background-position: 0% 50%; }
+      50%{ background-position: 100% 50%; }
+      100%{ background-position: 0% 50%; }
+    }
+    .animate-flag {
+      background-size: 300% 300%;
+      animation: flagwave 8s ease infinite;
+    }
+  </style>
+</head>
+<body class="text-gray-800 font-sans bg-gradient-to-br from-[#FF8C00] via-[#FFFFFF] via-[#1A237E] to-[#0B6623] animate-flag">
+
+  <header class="bg-blue-700 text-white p-4 sticky top-0 z-20">
+    <div class="max-w-5xl mx-auto flex items-center justify-between">
+      <h1 class="text-xl font-semibold">E-Vote — Voter List</h1>
+      <nav class="space-x-2 text-sm">
+        <a href="index.html" class="px-3 py-1 rounded hover:bg-blue-500">Home</a>
+        <a href="register.html" class="px-3 py-1 rounded hover:bg-blue-500">Register</a>
+        <a href="verify.html" class="px-3 py-1 rounded hover:bg-blue-500">Verify</a>
+        <a href="vote.html" class="px-3 py-1 rounded hover:bg-blue-500">Vote</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto mt-8 p-6 backdrop-blur-xl bg-white/20 shadow-2xl rounded-2xl border border-white/30">
+    <h2 class="text-2xl font-bold text-center mb-6">Registered Voters</h2>
+
+    <div class="mb-4 flex justify-center">
+      <input type="text" id="searchInput" placeholder="Search by name or voter ID..."
+        class="w-1/2 p-2 border rounded text-center focus:ring-2 focus:ring-blue-400">
+    </div>
+
+    <div id="voterList" class="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
+      <!-- Cards will appear here -->
+    </div>
+  </main>
+
+  <script>
+    const LS_KEYS = { VOTERS: 'decenvote_voters' };
+    function getStore(key){ return JSON.parse(localStorage.getItem(key) || '[]'); }
+    function setStore(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+    const voterListEl = document.getElementById('voterList');
+    const searchInput = document.getElementById('searchInput');
+
+    function renderVoters(filterText = '') {
+      const voters = getStore(LS_KEYS.VOTERS);
+      voterListEl.innerHTML = '';
+
+      const filtered = voters.filter(v => 
+        v.name.toLowerCase().includes(filterText.toLowerCase()) ||
+        v.id.toLowerCase().includes(filterText.toLowerCase())
+      );
+
+      if(filtered.length === 0){
+        voterListEl.innerHTML = `<p class="col-span-full text-center text-gray-700">No voters found.</p>`;
+        return;
+      }
+
+      filtered.forEach((v, index) => {
+        const card = document.createElement('div');
+        card.className = "p-4 bg-white/60 rounded-xl shadow-md hover:shadow-xl transition duration-300 border border-gray-200 text-center";
+
+        card.innerHTML = `
+          <img src="${v.photoDataUrl}" alt="Voter Photo" class="w-24 h-24 mx-auto rounded-full border-2 border-blue-500 object-cover mb-3">
+          <div id="voterInfo-${index}">
+            <h3 class="text-lg font-semibold">${v.name}</h3>
+            <p class="text-sm text-gray-600">🆔 Voter ID: ${v.id}</p>
+            <p class="text-sm text-gray-600">💳 Aadhar: ${v.aadhar}</p>
+            ${v.distance ? `<p class="text-sm text-gray-700 mt-1">📍 Distance: ${v.distance} km</p>` : ''}
+            ${v.circle ? `<p class="text-sm text-gray-700">⭕ Circle: ${v.circle}</p>` : ''}
+          </div>
+
+          <div id="editForm-${index}" class="hidden mt-2 space-y-2">
+            <input type="text" id="editName-${index}" class="w-full border p-1 rounded" value="${v.name}">
+            <input type="text" id="editId-${index}" class="w-full border p-1 rounded" value="${v.id}">
+            <input type="text" id="editAadhar-${index}" class="w-full border p-1 rounded" value="${v.aadhar}">
+            <input type="text" id="editCircle-${index}" class="w-full border p-1 rounded" value="${v.circle || ''}" placeholder="Circle (if any)">
+            <input type="number" id="editDistance-${index}" class="w-full border p-1 rounded" value="${v.distance || ''}" placeholder="Distance (km)">
+            <button onclick="saveEdit(${index})" class="w-full py-1 bg-green-600 text-white rounded hover:bg-green-700">💾 Save</button>
+          </div>
+
+          <div class="mt-3 flex justify-center gap-3">
+            <button onclick="toggleEdit(${index})" class="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600">✏️ Edit</button>
+            <button onclick="deleteVoter(${index})" class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">🗑️ Delete</button>
+          </div>
+        `;
+
+        voterListEl.appendChild(card);
+      });
+    }
+
+    function toggleEdit(index){
+      const info = document.getElementById(`voterInfo-${index}`);
+      const form = document.getElementById(`editForm-${index}`);
+      info.classList.toggle('hidden');
+      form.classList.toggle('hidden');
+    }
+
+    function saveEdit(index){
+      const voters = getStore(LS_KEYS.VOTERS);
+      voters[index].name = document.getElementById(`editName-${index}`).value;
+      voters[index].id = document.getElementById(`editId-${index}`).value;
+      voters[index].aadhar = document.getElementById(`editAadhar-${index}`).value;
+      voters[index].circle = document.getElementById(`editCircle-${index}`).value;
+      voters[index].distance = document.getElementById(`editDistance-${index}`).value;
+      setStore(LS_KEYS.VOTERS, voters);
+      renderVoters(searchInput.value);
+    }
+
+    function deleteVoter(index){
+      if(confirm("Are you sure you want to delete this voter?")){
+        const voters = getStore(LS_KEYS.VOTERS);
+        voters.splice(index, 1);
+        setStore(LS_KEYS.VOTERS, voters);
+        renderVoters(searchInput.value);
+      }
+    }
+
+    searchInput.addEventListener('input', e => renderVoters(e.target.value));
+    renderVoters();
+  </script>
+</body>
+</html>
