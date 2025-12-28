@@ -1,90 +1,168 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Verify Voter — DecenVote</title>
   <script src="https://cdn.tailwindcss.com"></script>
-   <style>
-        /* small helper so sections animate in/out smoothly */
-        .hidden-section {
-            display: none;
-        }
 
-        @keyframes flagwave {
-            0%{ background-position: 0% 50%;}
-            50%{background-position: 100% 50%;}
-            100% {background-position: 0% 50%;}
-        }
+  <style>
+    @keyframes flagwave {
+      0% {
+        background-position: 0% 50%;
+      }
 
-        .animate-flag{
-            background-size: 300% 300%;
-            animation: flagwave 8s ease infinite;
-        }
+      50% {
+        background-position: 100% 50%;
+      }
 
-    </style>
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+
+    .animate-flag {
+      background-size: 300% 300%;
+      animation: flagwave 8s ease infinite;
+    }
+  </style>
 </head>
-<body class="text-gray-800 font-sans bg-gradient-to-br from-[#FF8C00] via-[#FFFFFF] via-[#1A237E] to-[#0B6623] animate-flag">
-  <header class="bg-blue-700 text-white p-4 sticky top-0 z-20">
-        <div class="max-w-4xl mx-auto flex items-center justify-between">
-            <h1 class="text-xl font-semibold">E-Vote</h1>
-            <nav class="space-x-2 text-sm">
-                <a href="index.html" class="px-3 py-1 rounded hover:bg-blue-500">Home</a>
-                <a href="register.html" class="px-3 py-1 rounded hover:bg-blue-500">Register</a>
-                <a href="vote.html" class="px-3 py-1 rounded hover:bg-blue-500">Vote</a>
-                <a href="results.html" class="px-3 py-1 rounded hover:bg-blue-500">Live Results</a>
-            </nav>
-        </div>
-    </header>
 
-  <main class="max-w-lg mx-auto mt-10 backdrop-blur-xl bg-white/20 shadow-2xl rounded-2xl p-6 text-center border border-white/30 transform hover:-translate-y-2 transition duration-500 ">
-    <h2 class="text-2xl font-bold mb-2 text-center">Verify Your Identity</h2>
-    <p class="text-sm text-gray-600 mb-6 text-center">Enter your Voter ID or Aadhar number to continue to voting.</p>
+<body
+  class="text-gray-800 font-sans bg-gradient-to-br from-[#FF8C00] via-white via-[#1A237E] to-[#0B6623] animate-flag">
+
+  <!-- HEADER -->
+  <header class="bg-blue-700 text-white p-4 sticky top-0 z-20">
+    <div class="max-w-4xl mx-auto flex items-center justify-between">
+      <h1 class="text-xl font-semibold">E-Vote</h1>
+      <nav class="space-x-2 text-sm">
+        <a href="index.html" class="px-3 py-1 rounded hover:bg-blue-500">Home</a>
+        <a href="register.html" class="px-3 py-1 rounded hover:bg-blue-500">Register</a>
+        <a href="vote.html" class="px-3 py-1 rounded hover:bg-blue-500">Vote</a>
+        <a href="results.html" class="px-3 py-1 rounded hover:bg-blue-500">Live Results</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- VERIFY CARD -->
+  <main
+    class="max-w-lg mx-auto mt-10 backdrop-blur-xl bg-white/20 shadow-2xl rounded-2xl p-6 text-center border border-white/30">
+    <h2 class="text-2xl font-bold mb-2">Verify Your Identity</h2>
+    <p class="text-sm text-gray-600 mb-6">
+      Enter your Voter ID or Aadhar number to continue.
+    </p>
 
     <form id="verifyForm" class="space-y-4">
       <div>
         <label class="block text-sm font-medium mb-1">Voter ID</label>
-        <input type="text" id="voterId" class="w-full border p-2 rounded" placeholder="Enter your Voter ID" required />
+        <input id="voterId" type="text" class="w-full border p-2 rounded" placeholder="Enter Voter ID" />
       </div>
-      <div class="text-center text-gray-500">or</div>
+
+      <div class="text-gray-500 text-sm">OR</div>
+
       <div>
         <label class="block text-sm font-medium mb-1">Aadhar Number</label>
-        <input type="text" id="aadhar" class="w-full border p-2 rounded" placeholder="Enter your Aadhar Number" />
+        <input id="aadhar" type="text" class="w-full border p-2 rounded" placeholder="Enter Aadhar Number" />
       </div>
-      <button type="submit" class="w-full py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700">Verify</button>
+
+      <button class="w-full py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+        Verify
+      </button>
     </form>
 
-    <p id="status" class="mt-4 text-center text-sm"></p>
+    <p id="status" class="mt-4 text-sm"></p>
   </main>
 
+  <!-- OTP MODAL -->
+  <div id="otpModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-xl w-80 text-center shadow-xl">
+      <h3 class="text-lg font-bold mb-2">OTP Verification</h3>
+      <p class="text-sm text-gray-600 mb-4">
+        OTP has been sent to your registered mobile number
+      </p>
+
+      <input id="otpInput" maxlength="6" class="w-full border rounded p-2 text-center text-lg tracking-widest"
+        placeholder="Enter OTP" />
+
+      <button id="verifyOtpBtn" class="w-full mt-4 bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700">
+        Verify OTP
+      </button>
+
+      <p id="otpStatus" class="mt-3 text-sm"></p>
+    </div>
+  </div>
+
+  <!-- SCRIPT -->
   <script>
     const LS_KEYS = {
-      VOTERS: 'decenvote_voters'
+      VOTERS: "decenvote_voters",
+      VERIFIED: "decenvote_verifiedVoter"
     };
 
-    function getStore(key){ return JSON.parse(localStorage.getItem(key) || '[]'); }
+    function getStore(key) {
+      return JSON.parse(localStorage.getItem(key) || "[]");
+    }
 
-    const form = document.getElementById('verifyForm');
-    const status = document.getElementById('status');
+    const form = document.getElementById("verifyForm");
+    const status = document.getElementById("status");
+    const otpModal = document.getElementById("otpModal");
+    const otpInput = document.getElementById("otpInput");
+    const otpStatus = document.getElementById("otpStatus");
+    const verifyOtpBtn = document.getElementById("verifyOtpBtn");
 
-    form.addEventListener('submit', (e) => {
+    let generatedOTP = "";
+    let verifiedVoter = null;
+
+    form.addEventListener("submit", (e) => {
       e.preventDefault();
-      const voterId = document.getElementById('voterId').value.trim();
-      const aadhar = document.getElementById('aadhar').value.trim();
+
+      const voterId = document.getElementById("voterId").value.trim();
+      const aadhar = document.getElementById("aadhar").value.trim();
 
       const voters = getStore(LS_KEYS.VOTERS);
       const voter = voters.find(v => v.id === voterId || v.aadhar === aadhar);
 
-      if(voter){
-        localStorage.setItem('decenvote_verifiedVoter', JSON.stringify(voter));
-        status.textContent = '✅ Verification successful! Redirecting to election page...';
-        status.className = 'mt-4 text-center text-green-600';
-        setTimeout(() => window.location.href = 'vote.html', 1500);
+      if (!voter) {
+        status.textContent = "Voter not found. Please register first.";
+        status.className = "mt-4 text-red-600";
+        return;
+      }
+
+      // Generate demo OTP
+      generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
+      verifiedVoter = voter;
+
+      alert("Demo OTP (for testing): " + generatedOTP);
+
+
+      status.textContent = "OTP sent to registered mobile number";
+      status.className = "mt-4 text-green-600";
+
+      otpModal.classList.remove("hidden");
+      otpModal.classList.add("flex");
+    });
+
+    verifyOtpBtn.addEventListener("click", () => {
+      if (otpInput.value === generatedOTP) {
+        otpStatus.textContent = "OTP verified successfully";
+        otpStatus.className = "text-green-600";
+
+        localStorage.setItem(
+          LS_KEYS.VERIFIED,
+          JSON.stringify(verifiedVoter)
+        );
+
+        setTimeout(() => {
+          window.location.href = "vote.html";
+        }, 1000);
       } else {
-        status.textContent = '❌ Voter not found. Please register first.';
-        status.className = 'mt-4 text-center text-red-600';
+        otpStatus.textContent = "Invalid OTP. Try again.";
+        otpStatus.className = "text-red-600";
       }
     });
   </script>
+
 </body>
+
 </html>
